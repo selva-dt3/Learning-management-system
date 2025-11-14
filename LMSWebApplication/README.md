@@ -1,6 +1,55 @@
-# Lightweight React Template for KAVIA
+# LMS Web Application (React + Supabase)
 
-This project provides a minimal React template with a clean, modern UI and minimal dependencies.
+This app is a frontend-driven Corporate LMS using React and Supabase JavaScript APIs. It supports roles (Admin, HR, Employee), lessons with storage (PDF/video), quizzes, onboarding, analytics, and real-time updates.
+
+## Setup
+
+1) Install dependencies:
+```
+npm install
+```
+
+2) Configure environment:
+- Copy `.env.example` to `.env` and set:
+  - `REACT_APP_SUPABASE_URL`
+  - `REACT_APP_SUPABASE_ANON_KEY`
+  - Optional: `REACT_APP_SITE_URL` (defaults to `http://localhost:3000`)
+
+Note: Other env vars are already present in the environment for this container.
+
+3) Start the app:
+```
+npm start
+```
+
+## Supabase Notes
+
+- Tables referenced by the UI:
+  - profiles(user_id uuid, role text ['Admin','HR','Employee'], full_name text, ...)
+  - lessons(id uuid, title text, description text, status text ['draft','published'], storage_path text, updated_at timestamp, ...)
+  - lesson_progress, lesson_assignments, quizzes, quiz_questions, quiz_answers, quiz_submissions, onboarding_status
+- Storage bucket example: `lesson-files` to store PDFs/videos. Save storage_path like `lesson-files/path/to/file.pdf`.
+- RLS policies must allow:
+  - profiles: users can select their own row (user_id = auth.uid()).
+  - lessons: Admins see all; others see published and/or assigned via policies.
+  - onboarding_status: upsert by owner or HR/Admin as per requirements.
+
+## Features in this scaffold
+
+- Supabase client configured via env and used across the app
+- Auth pages and session persistence via AuthContext
+- Role-based dashboards and guarded routes
+- Lessons list, editor (Admin/HR), and viewer with signed URLs (PDF/video)
+- Onboarding acknowledgment saved to onboarding_status
+- Basic analytics sample computing completion rates from lesson_progress
+- Real-time updates on lessons list through Supabase channel
+
+Next steps: extend quizzes (builder and taker), HR assignments management, richer analytics, and file uploader to Supabase Storage.
+
+Troubleshooting:
+- If routing fails, ensure `react-router-dom@^6` is installed (already added in package.json). Re-run `npm install`.
+- Ensure Supabase env vars are correctly set in `.env`. The app will log a console error if not configured.
+
 
 ## Features
 
