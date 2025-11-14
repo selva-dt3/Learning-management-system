@@ -9,6 +9,13 @@
     - `REACT_APP_SUPABASE_URL`
     - `REACT_APP_SUPABASE_ANON_KEY`
 - Email redirect: Uses `REACT_APP_SITE_URL` (default `window.location.origin`) for `emailRedirectTo` on sign up and password reset.
+
+## Role-Hinted Auth Entry URLs
+
+- The frontend exposes `/auth/admin`, `/auth/hr`, `/auth/employee` that pass a role hint to the Auth UI.
+- Sign-up includes `role` in Supabase Auth user metadata and upserts `profiles.role` to that initial value.
+- Sign-in does NOT modify `profiles.role` to prevent elevation via URL; the user’s existing role is respected.
+- Ensure RLS rules enforce that only Admin/HR can update roles in `profiles`.
 - Never hardcode secrets; all configuration is via environment variables.
 - If neither pair is set, the app will throw:
   "Supabase configuration missing. Please set SUPABASE_URL/SUPABASE_KEY or REACT_APP_SUPABASE_URL/REACT_APP_SUPABASE_ANON_KEY."

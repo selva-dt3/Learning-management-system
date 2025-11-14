@@ -56,6 +56,7 @@ function AppShell() {
       </button>
       <Routes>
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth/:role" element={<AuthPage />} />
         <Route element={<ProtectedRoute />}>
           {/* Authenticated layout with Navbar */}
           <Route element={<LayoutWithNavbar />}>

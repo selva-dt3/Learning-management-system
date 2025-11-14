@@ -43,14 +43,13 @@ export function AuthProvider({ children }) {
   const signInWithPassword = useCallback(async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    // After sign-in, ensure a profile exists and sync role if available
+    // After sign-in, ensure a profile row exists but DO NOT override role on sign-in.
     try {
-      const role = data?.user?.user_metadata?.role;
       if (data?.user) {
         await supabase.from('profiles').upsert({
           user_id: data.user.id,
           email: email,
-          role: role || 'Employee',
+          // role: DO NOT set here to avoid elevation; keep existing or let DB default.
           full_name: data.user.user_metadata?.full_name || null
         }, { onConflict: 'user_id' });
       }
@@ -59,16 +58,28 @@ export function AuthProvider({ children }) {
   }, [supabase]);
 
   const signUpWithPassword = useCallback(async (email, password, extra = {}) => {
+    /**
+     * Supports optional extra.roleOverride to set initial role.
+     * This is only honored during sign-up and stored in user metadata and profiles.
+     * Defensive: restrict to allowed values; default to 'Employee'.
+     */
     const redirectTo = `${getSiteRedirectUrl()}/auth/callback`;
+
+    // Sanitize role override
+    const allowedRoles = ['Admin', 'HR', 'Employee'];
+    const roleOverride = allowedRoles.includes(extra?.roleOverride) ? extra.roleOverride
+                        : (allowedRoles.includes(extra?.role) ? extra.role : 'Employee');
+
+    const metadata = { ...extra, role: roleOverride };
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: extra, emailRedirectTo: redirectTo },
+      options: { data: metadata, emailRedirectTo: redirectTo },
     });
     if (error) throw error;
 
-    // Ensure profiles row exists with role metadata if provided
-    const metadataRole = extra?.role || 'Employee';
+    // Ensure profiles row exists with role metadata if provided; only at sign-up time.
     try {
       if (data?.user) {
         await supabase
@@ -76,7 +87,7 @@ export function AuthProvider({ children }) {
           .upsert({
             user_id: data.user.id,
             email,
-            role: metadataRole,
+            role: roleOverride || 'Employee',
             full_name: extra?.full_name || null,
           }, { onConflict: 'user_id' });
       }

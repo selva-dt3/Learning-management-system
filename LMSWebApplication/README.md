@@ -85,6 +85,10 @@ Ensure RLS policies align with the above UI behaviors for a seamless experience.
 ## Implemented Features
 
 - Auth: Email/password sign up/in/out, password reset email. Profile row upserted/synced with role metadata.
+- Role-specific auth entry URLs:
+  - /auth/admin, /auth/hr, /auth/employee render the same Auth page with role-specific heading/messaging.
+  - Role hint only sets initial role during sign-up (via metadata). On sign-in, existing users keep their role from profiles; URL cannot elevate privileges.
+  - Default route /auth remains available and defaults to Employee on sign-up.
 - Role-based dashboards and guarded routes.
 - Lessons: List with realtime updates, create/edit/delete, storage uploader (PDF/MP4/WebM) with validation, signed URLs in viewer, mark-complete.
 - Quizzes:
