@@ -1,12 +1,11 @@
 import { getSupabaseClient } from '../lib/supabaseClient';
 import { ApplicationError } from '../utils/errors';
 
-const supabase = getSupabaseClient();
-
 /**
  * INTERNAL: Helper to assert authentication and return current user.
  */
 async function requireUser() {
+  const supabase = getSupabaseClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error) throw new ApplicationError(error.message || 'Auth error', 'AUTH', 401);
   if (!user) throw new ApplicationError('Not authenticated', 'AUTH', 401);
@@ -22,6 +21,7 @@ async function requireUser() {
  */
 export async function upsertQuizWithQuestions(quiz, questions) {
   try {
+    const supabase = getSupabaseClient();
     // Upsert quiz core
     let quizId = quiz.id;
     const quizPayload = {
@@ -103,6 +103,7 @@ export async function upsertQuizWithQuestions(quiz, questions) {
  */
 export async function upsertBankQuestion(question) {
   try {
+    const supabase = getSupabaseClient();
     let qId = question.id;
     const payload = {
       text: question.text,
@@ -151,6 +152,7 @@ export async function upsertBankQuestion(question) {
  */
 export async function deleteBankQuestion(questionId) {
   try {
+    const supabase = getSupabaseClient();
     const { error } = await supabase.from('question_bank').delete().eq('id', questionId);
     if (error) throw error;
     return true;
@@ -165,6 +167,7 @@ export async function deleteBankQuestion(questionId) {
  */
 export async function listBankQuestions(limit = 200, search = '') {
   try {
+    const supabase = getSupabaseClient();
     let query = supabase.from('question_bank').select('id, text, type, points, explanation').order('id', { ascending: false }).limit(limit);
     if (search?.trim()) {
       query = query.ilike('text', `%${search.trim()}%`);
@@ -183,6 +186,7 @@ export async function listBankQuestions(limit = 200, search = '') {
  */
 export async function addBankQuestionToQuiz(quizId, bankQuestionId) {
   try {
+    const supabase = getSupabaseClient();
     const { data: q, error } = await supabase.from('question_bank').select('id, text, type, points, explanation').eq('id', bankQuestionId).single();
     if (error) throw error;
     const { data: answers, error: aErr } = await supabase.from('question_bank_answers').select('text, is_correct').eq('question_id', bankQuestionId);
@@ -210,6 +214,7 @@ export async function addBankQuestionToQuiz(quizId, bankQuestionId) {
  * Fetch quiz with questions and options. Supports optional shuffle.
  */
 export async function getQuiz(quizId) {
+  const supabase = getSupabaseClient();
   const { data: quiz, error } = await supabase.from('quizzes').select('*').eq('id', quizId).single();
   if (error) throw new ApplicationError(error.message, 'QUIZ_GET');
 
@@ -254,6 +259,7 @@ export async function getQuiz(quizId) {
  * returns: { totalPoints, earnedPoints, items: [{ question_id, is_correct, points, earned, selected, correct, explanation }] }
  */
 async function gradeAnswers(quizId, providedAnswers) {
+  const supabase = getSupabaseClient();
   const qIds = providedAnswers.map(a => a.question_id);
   const { data: qRows, error: qErr } = await supabase.from('quiz_questions').select('id, points, explanation, type').in('id', qIds);
   if (qErr) throw qErr;
@@ -335,6 +341,7 @@ export async function submitQuiz(quizId, answers, options = {}) {
     }
 
     // Grade
+    const supabase = getSupabaseClient();
     const grading = await gradeAnswers(quizId, answers);
     const scorePercent = grading.totalPoints ? Math.round((grading.earnedPoints / grading.totalPoints) * 100) : 0;
 
@@ -380,6 +387,7 @@ export async function submitQuiz(quizId, answers, options = {}) {
  */
 export async function listSubmissions(quizId, userIdOpt = null) {
   try {
+    const supabase = getSupabaseClient();
     let query = supabase
       .from('quiz_submissions')
       .select('id, user_id, score, submitted_at, status')
@@ -401,6 +409,7 @@ export async function listSubmissions(quizId, userIdOpt = null) {
  */
 export async function getSubmissionDetail(submissionId) {
   try {
+    const supabase = getSupabaseClient();
     const { data: sub, error } = await supabase
       .from('quiz_submissions')
       .select('id, quiz_id, user_id, score, submitted_at, status')
@@ -436,6 +445,7 @@ export async function getSubmissionDetail(submissionId) {
  */
 export async function updateSubmissionStatus(submissionId, status) {
   try {
+    const supabase = getSupabaseClient();
     const allowed = ['submitted', 'reopened', 'invalidated'];
     if (!allowed.includes(status)) throw new ApplicationError('Invalid status', 'QUIZ_STATUS', 400);
     const { error } = await supabase.from('quiz_submissions').update({ status }).eq('id', submissionId);
@@ -453,6 +463,7 @@ export async function updateSubmissionStatus(submissionId, status) {
  */
 export async function assignQuiz(assignment) {
   try {
+    const supabase = getSupabaseClient();
     const payload = {
       quiz_id: assignment.quiz_id,
       lesson_id: assignment.lesson_id || null,
@@ -475,6 +486,7 @@ export async function assignQuiz(assignment) {
  */
 export async function getMyAssignedQuizzes() {
   try {
+    const supabase = getSupabaseClient();
     const user = await requireUser();
     const { data, error } = await supabase
       .from('quiz_assignments_view')
@@ -494,6 +506,7 @@ export async function getMyAssignedQuizzes() {
  */
 export async function getQuizAnalytics(quizId) {
   try {
+    const supabase = getSupabaseClient();
     const { data: subs, error } = await supabase
       .from('quiz_submissions')
       .select('id, score')

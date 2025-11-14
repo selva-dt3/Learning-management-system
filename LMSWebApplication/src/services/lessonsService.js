@@ -1,12 +1,11 @@
 import { getSupabaseClient } from '../lib/supabaseClient';
 import { ApplicationError } from '../utils/errors';
 
-const supabase = getSupabaseClient();
-
 // PUBLIC_INTERFACE
 export async function markLessonComplete(lessonId) {
   /** Mark a lesson as completed for current user using RLS */
   try {
+    const supabase = getSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new ApplicationError('Not authenticated', 'AUTH', 401);
     const { error } = await supabase.from('lesson_progress').upsert({

@@ -1,12 +1,11 @@
 import { getSupabaseClient } from '../lib/supabaseClient';
 import { ApplicationError } from '../utils/errors';
 
-const supabase = getSupabaseClient();
-
 /**
  * INTERNAL: ensure user is authenticated.
  */
 async function requireUser() {
+  const supabase = getSupabaseClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error) throw new ApplicationError(error.message || 'Auth error', 'AUTH', 401);
   if (!user) throw new ApplicationError('Not authenticated', 'AUTH', 401);
@@ -19,6 +18,7 @@ export async function createAssignment(payload) {
    * payload: { quiz_id, assignee_type: 'user'|'group'|'lesson', assignee_id, due_at?, opens_at?, closes_at?, attempts_allowed?, created_by? }
    */
   try {
+    const supabase = getSupabaseClient();
     const user = await requireUser();
     const record = {
       quiz_id: payload.quiz_id,
@@ -42,6 +42,7 @@ export async function createAssignment(payload) {
 export async function listAssignments(filters = {}) {
   /** List assignments for admin/HR with optional filters: { quiz_id?, assignee_type? } */
   try {
+    const supabase = getSupabaseClient();
     let query = supabase
       .from('quiz_assignments')
       .select('id, quiz_id, assignee_type, assignee_id, due_at, opens_at, closes_at, attempts_allowed, created_by')
@@ -61,6 +62,7 @@ export async function listAssignments(filters = {}) {
 export async function revokeAssignment(id) {
   /** Revoke assignment by id (delete). */
   try {
+    const supabase = getSupabaseClient();
     const { error } = await supabase.from('quiz_assignments').delete().eq('id', id);
     if (error) throw error;
     return true;
@@ -73,6 +75,7 @@ export async function revokeAssignment(id) {
 export async function updateAssignment(id, patch) {
   /** Update due date or window and attempts. patch: { due_at?, opens_at?, closes_at?, attempts_allowed? } */
   try {
+    const supabase = getSupabaseClient();
     const payload = {};
     if (patch.due_at !== undefined) payload.due_at = patch.due_at;
     if (patch.opens_at !== undefined) payload.opens_at = patch.opens_at;
@@ -94,6 +97,7 @@ export async function getActiveAssignmentForUser(quizId) {
    * Returns the first active assignment within window or null.
    */
   try {
+    const supabase = getSupabaseClient();
     const user = await requireUser();
     const nowIso = new Date().toISOString();
     let query = supabase
@@ -121,6 +125,7 @@ export async function getActiveAssignmentForUser(quizId) {
 export async function getAttemptsUsed(quizId) {
   /** Count attempts already submitted by current user for the quiz (status submitted). */
   try {
+    const supabase = getSupabaseClient();
     const user = await requireUser();
     const { count, error } = await supabase
       .from('quiz_submissions')
