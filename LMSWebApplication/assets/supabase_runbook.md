@@ -4,6 +4,7 @@ This runbook executes the idempotent SQL for the LMS schema, RLS, views, and sto
 - No syntax errors occur
 - Policies on storage.objects are created when missing and skipped when existing on re-run
 - Public.* policies are re-created cleanly on re-run (using DROP POLICY IF EXISTS)
+- All previous occurrences of unsupported "CREATE POLICY IF NOT EXISTS" have been removed and replaced with idempotent guards
 
 Prerequisites:
 - Supabase project with access
@@ -12,7 +13,29 @@ Prerequisites:
   - Supabase CLI + psql installed and authenticated
 
 Files:
-- assets/supabase_setup.sql (executable version of kavia-docs/supabase-lms-setup.md)
+- assets/supabase_setup.sql (executable version; idempotent and safe to re-run)
+
+Idempotency patterns used:
+- Public schema policies:
+  - DROP POLICY IF EXISTS "<name>" ON <schema.table>;
+  - CREATE POLICY "<name>" ON <schema.table> ...;
+- storage.objects policies:
+  - DO $$ BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_policies p
+        JOIN pg_class c ON c.oid = p.polrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE p.polname = '<policy-name>'
+          AND n.nspname = 'storage'
+          AND c.relname = 'objects'
+      ) THEN
+        CREATE POLICY "<policy-name>" ON storage.objects ...;
+      END IF;
+    END $$;
+
+Note:
+- There are no remaining "CREATE POLICY IF NOT EXISTS" statements in assets/supabase_setup.sql.
+- The DO $$ blocks also inherently require the relation to exist (via pg_class/pg_namespace joins), making execution safe.
 
 Option A: Supabase SQL Editor (recommended)
 1) Open your project's SQL editor
@@ -56,7 +79,9 @@ Expected results on second run:
 - No syntax errors
 - No duplicate policy errors
 - Storage policy DO $$ blocks skip creation if policy exists
+- Public policies are dropped and recreated cleanly
 
 Notes:
 - Ensure Realtime is enabled for lessons and lesson_progress in the Supabase dashboard.
 - Confirm a non-public storage bucket 'lesson-files' is created under Storage.
+- If you previously used "CREATE POLICY IF NOT EXISTS", re-run this updated script to resolve the syntax error by applying idempotent guards.
