@@ -1,25 +1,46 @@
-//
-// Supabase client setup for the LMS app
-// Uses environment variables and exposes typed helpers
-//
+/**
+ * Supabase client setup for the LMS app.
+ * Resolves environment variables from both generic and CRA-prefixed names.
+ * - Preferred: SUPABASE_URL, SUPABASE_KEY
+ * - Fallbacks: REACT_APP_SUPABASE_URL, REACT_APP_SUPABASE_ANON_KEY
+ * No secrets are logged. A single clear error is thrown if configuration is missing.
+ */
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
+/**
+ * Resolve Supabase configuration from environment variables supported in various environments.
+ * We intentionally do not log values, only presence.
+ */
+function resolveSupabaseEnv() {
+  const supabaseUrl =
+    process.env.SUPABASE_URL ||
+    process.env.REACT_APP_SUPABASE_URL ||
+    '';
 
-// PUBLIC_INTERFACE
-export function getSupabaseClient() {
-  /** Create and return a singleton Supabase client instance.
-   * Validates required environment variables and configures with recommended options.
-   */
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    // We avoid throwing secrets, provide clear message for setup
-    // eslint-disable-next-line no-console
-    console.error('Supabase env not configured. Please set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY.');
+  const supabaseKey =
+    process.env.SUPABASE_KEY ||
+    process.env.REACT_APP_SUPABASE_ANON_KEY ||
+    '';
+
+  return { supabaseUrl, supabaseKey };
+}
+
+/**
+ * Lazily initialized singleton stored on window to avoid multiple clients during HMR.
+ */
+function getOrCreateClient() {
+  const { supabaseUrl, supabaseKey } = resolveSupabaseEnv();
+
+  if (!supabaseUrl || !supabaseKey) {
+    // Throw a single informative error without exposing any values
+    throw new Error(
+      'Supabase configuration missing. Please set SUPABASE_URL/SUPABASE_KEY or REACT_APP_SUPABASE_URL/REACT_APP_SUPABASE_ANON_KEY.'
+    );
   }
+
   if (!window.__supabase_client__) {
-    window.__supabase_client__ = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '', {
+    window.__supabase_client__ = createClient(supabaseUrl, supabaseKey, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
@@ -30,10 +51,16 @@ export function getSupabaseClient() {
           'x-client-info': 'LMSWebApp',
         },
       },
-      realtime: { params: { eventsPerSecond: 5 } }
+      realtime: { params: { eventsPerSecond: 5 } },
     });
   }
   return window.__supabase_client__;
+}
+
+// PUBLIC_INTERFACE
+export function getSupabaseClient() {
+  /** Returns the singleton Supabase client instance (lazy initialized). */
+  return getOrCreateClient();
 }
 
 // PUBLIC_INTERFACE

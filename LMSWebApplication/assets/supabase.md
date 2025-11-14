@@ -1,10 +1,17 @@
 # Supabase Integration Notes
 
-- Auth: Uses `@supabase/supabase-js` v2 client configured via:
-  - REACT_APP_SUPABASE_URL
-  - REACT_APP_SUPABASE_ANON_KEY
-- Email redirect: Uses REACT_APP_SITE_URL (default window.location.origin) for `emailRedirectTo` on sign up and password reset.
+- Auth: Uses `@supabase/supabase-js` v2 client.
+- Configuration supports either of the following environment variable pairs:
+  - Preferred generic:
+    - `SUPABASE_URL`
+    - `SUPABASE_KEY`
+  - CRA-style fallback:
+    - `REACT_APP_SUPABASE_URL`
+    - `REACT_APP_SUPABASE_ANON_KEY`
+- Email redirect: Uses `REACT_APP_SITE_URL` (default `window.location.origin`) for `emailRedirectTo` on sign up and password reset.
 - Never hardcode secrets; all configuration is via environment variables.
+- If neither pair is set, the app will throw:
+  "Supabase configuration missing. Please set SUPABASE_URL/SUPABASE_KEY or REACT_APP_SUPABASE_URL/REACT_APP_SUPABASE_ANON_KEY."
 
 ## Tables and Policies
 

@@ -10,12 +10,18 @@ npm install
 ```
 
 2) Configure environment:
-- Copy `.env.example` to `.env` and set:
-  - `REACT_APP_SUPABASE_URL`
-  - `REACT_APP_SUPABASE_ANON_KEY`
-  - Optional: `REACT_APP_SITE_URL` (defaults to window.location.origin)
+- Copy `.env.example` to `.env` and set ONE of the following pairs:
+  - Preferred generic names:
+    - `SUPABASE_URL`
+    - `SUPABASE_KEY`
+  - Or CRA-style names:
+    - `REACT_APP_SUPABASE_URL`
+    - `REACT_APP_SUPABASE_ANON_KEY`
+- Optional: `REACT_APP_SITE_URL` (defaults to window.location.origin)
 
-Note: Other env vars are present in the container environment.
+Notes:
+- The app will automatically resolve either pair at runtime; no secrets are logged.
+- Other env vars may be present in the container environment.
 
 3) Start the app:
 ```
