@@ -87,6 +87,30 @@ RLS Notes:
 - Consider using security definer functions for the resolved view if necessary to evaluate mappings safely.
 - Take Quiz flow relies on user_quiz_assignments_resolved to validate active window (opens_at/closes_at) and attempts_allowed.
 
+## Invitations (Admin-only)
+
+Schema:
+- user_invitations: {
+  id uuid default gen_random_uuid() pk,
+  email text not null,
+  role text check (role in ('Admin','HR','Employee')) not null,
+  department text null,
+  invited_by uuid null,
+  status text check (status in ('pending','accepted','revoked','failed')) default 'pending',
+  created_at timestamp default now()
+}
+
+Policies:
+- user_invitations:
+  - Admin: select/insert/update all rows (revoke/resend).
+  - HR/Employees: no access (optional read own by email).
+- profiles upsert on acceptance: allow owner (user_id = auth.uid()) to upsert their row. Admin may manage roles.
+- Auth metadata: invite sets user_metadata.role/department; on session change, frontend upserts profiles accordingly.
+
+Configuration:
+- Invitation links use emailRedirectTo = REACT_APP_SITE_URL (fallback window.location.origin) + /auth/callback.
+- Admin API operations require service role key; if environment only provides anon key, invite endpoints may fail. The UI handles errors gracefully and attempts a fallback magic link flow.
+
 ## Real-time
 - Realtime enabled on: lessons, lesson_progress (and optionally quiz_submissions).
 - UI subscribes to lessons and lesson_progress changes to auto-refresh lists.

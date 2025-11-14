@@ -7,5 +7,5 @@ Quick start for LMSWebApplication:
 - Copy `.env.example` to `.env` and set either:
   - SUPABASE_URL and SUPABASE_KEY
   - OR REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY
-- Optional: set REACT_APP_SITE_URL for auth email redirects
+- Optional: set REACT_APP_SITE_URL for auth email redirects and invites
 - Install and start: `npm install && npm start`

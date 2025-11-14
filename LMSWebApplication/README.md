@@ -100,6 +100,11 @@ Ensure RLS policies align with the above UI behaviors for a seamless experience.
   - Reviews: Learner post-submit review; Admin/HR reviews list and attempt detail; status update (reopen/invalidate).
   - Analytics: Score distribution and item difficulty approximation.
 - Onboarding: NDA/Code of Conduct acknowledgments stored via upsert.
+- Admin User Invitations:
+  - Admin-only page at /admin/invites to send invites via email with predefined role (Admin|HR|Employee) and optional department.
+  - Uses Supabase Admin API (auth.admin.inviteUserByEmail) with fallback to createUser+magic link.
+  - Records invites in user_invitations(email, role, department, invited_by, status, created_at).
+  - On acceptance/sign-up, profiles upserted with role/department via user metadata; RLS must allow upsert for owner.
 - Realtime: Lessons and progress channels wired for auto-refresh.
 
 ## Troubleshooting

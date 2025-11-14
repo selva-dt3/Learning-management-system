@@ -12,7 +12,10 @@ export default function Navbar() {
       <Link to="/lessons">Lessons</Link>
       <Link to="/quizzes">Quizzes</Link>
       <Link to="/onboarding">Onboarding</Link>
-      {role === 'Admin' && <Link to="/analytics">Analytics</Link>}
+      {role === 'Admin' && <>
+        <Link to="/analytics">Analytics</Link>
+        <Link to="/admin/invites">User Invitations</Link>
+      </>}
       <div style={{ marginLeft: 'auto', display:'flex', gap: 12, alignItems: 'center' }}>
         <span style={{ opacity: 0.7 }}>Role: {role || 'N/A'}</span>
         <Link to="/auth/admin" aria-label="Admin sign-in">Admin Login</Link>

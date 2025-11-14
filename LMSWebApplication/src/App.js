@@ -12,6 +12,7 @@ import LessonViewer from './pages/lessons/LessonViewer';
 import QuizzesRoutes from './pages/quizzes';
 import Onboarding from './pages/onboarding/Onboarding';
 import Analytics from './pages/analytics/Analytics';
+import UsersInvitesPage from './pages/admin/UsersInvitesPage';
 import { ProtectedRoute, RoleRoute } from './routes/RouteGuards';
 import Navbar from './components/Navbar';
 
@@ -64,6 +65,7 @@ function AppShell() {
             <Route path="/" element={<HomeRouter />} />
             <Route element={<RoleRoute allow={['Admin']} />}>
               <Route path="/analytics" element={<Analytics />} />
+              <Route path="/admin/invites" element={<UsersInvitesPage />} />
             </Route>
             <Route element={<RoleRoute allow={['Admin', 'HR', 'Employee']} />}>
               <Route path="/lessons" element={<LessonsList />} />

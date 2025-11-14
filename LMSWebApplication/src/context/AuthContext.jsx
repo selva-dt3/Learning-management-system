@@ -29,9 +29,16 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     refresh();
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       setSession(newSession);
-      // When auth updates, refetch profile
+      // When auth updates, attempt profile upsert using metadata (invitation acceptance)
+      try {
+        const mod = await import('../services/invitationsService');
+        if (mod?.upsertProfileOnAccept) {
+          await mod.upsertProfileOnAccept();
+        }
+      } catch (_) {}
+      // Then refetch profile
       refresh();
     });
     return () => {
