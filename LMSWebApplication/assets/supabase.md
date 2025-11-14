@@ -23,7 +23,7 @@
 ## Tables and Policies
 
 Core:
-- profiles: { id serial, user_id uuid (unique), role text, full_name text, department text, email text }
+- profiles: { id bigserial, user_id uuid (unique, fk auth.users), role user_role enum ['Admin','HR','Employee'] default 'Employee', full_name text, department text, email text, created_at timestamptz, updated_at timestamptz }
   - Policy: user can select/update their own row (user_id = auth.uid()); Admin/HR may select broader as per compliance.
 - lessons: { id uuid default gen_random_uuid(), title text, description text, status text ['draft','published'], storage_path text, updated_at timestamp default now() }
   - Policies: Admin can CRUD; others select published or assigned via lesson_assignments.

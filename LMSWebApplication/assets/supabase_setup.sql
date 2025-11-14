@@ -5,21 +5,9 @@
 -- - Storage.objects policies use DO $$ with pg_policies lookup to avoid duplicates
 -- - Views use CREATE OR REPLACE
 
--- 0) Extensions and helper function
+-- 0) Extensions
 create extension if not exists "uuid-ossp";
 create extension if not exists "pgcrypto";
-
-create or replace function public.current_app_role()
-returns text
-language sql
-stable
-security invoker
-as $$
-  select coalesce(
-    (select role from public.profiles where user_id = auth.uid()),
-    'Employee'
-  );
-$$;
 
 -- 1) Domain types and enums
 do $$
@@ -44,7 +32,7 @@ begin
   end if;
 end$$;
 
--- 2) Core tables
+-- 2) Core tables (create profiles first so functions/policies can reference it)
 create table if not exists public.profiles (
   id bigserial primary key,
   user_id uuid unique not null references auth.users(id) on delete cascade,
@@ -58,6 +46,24 @@ create table if not exists public.profiles (
 create index if not exists idx_profiles_user_id on public.profiles(user_id);
 create index if not exists idx_profiles_role on public.profiles(role);
 create index if not exists idx_profiles_department on public.profiles(department);
+
+-- Helper function placed AFTER profiles creation; add safety if profiles missing
+create or replace function public.current_app_role()
+returns text
+language sql
+stable
+security invoker
+as $$
+  select coalesce(
+    (select p.role
+     from pg_catalog.pg_tables t
+     join public.profiles p on true
+     where t.schemaname = 'public' and t.tablename = 'profiles'
+       and p.user_id = auth.uid()
+     limit 1),
+    'Employee'
+  );
+$$;
 
 create table if not exists public.lessons (
   id uuid primary key default gen_random_uuid(),
@@ -245,24 +251,31 @@ alter table public.question_bank_answers enable row level security;
 alter table public.quiz_assignments enable row level security;
 alter table public.user_invitations enable row level security;
 
--- 6) RLS Policies (drop then create)
-drop policy if exists "profiles_self_select" on public.profiles;
-create policy "profiles_self_select" on public.profiles
-for select using (user_id = auth.uid() or public.current_app_role() in ('Admin','HR'));
+-- 6) RLS Policies (drop then create) with table existence guard for safety
+do $$
+begin
+  if exists (select 1 from pg_tables where schemaname='public' and tablename='profiles') then
+    drop policy if exists "profiles_self_select" on public.profiles;
+    create policy "profiles_self_select" on public.profiles
+    for select using (user_id = auth.uid() or public.current_app_role() in ('Admin','HR'));
 
-drop policy if exists "profiles_self_upsert" on public.profiles;
-create policy "profiles_self_upsert" on public.profiles
-for insert with check (user_id = auth.uid());
+    drop policy if exists "profiles_self_upsert" on public.profiles;
+    create policy "profiles_self_upsert" on public.profiles
+    for insert with check (user_id = auth.uid());
 
-drop policy if exists "profiles_self_update" on public.profiles;
-create policy "profiles_self_update" on public.profiles
-for update using (user_id = auth.uid() or public.current_app_role() in ('Admin','HR'))
-with check (
-  case
-    when public.current_app_role() in ('Admin','HR') then true
-    else user_id = auth.uid() and (role is null or role = (select role from public.profiles where user_id = auth.uid()))
-  end
-);
+    drop policy if exists "profiles_self_update" on public.profiles;
+    create policy "profiles_self_update" on public.profiles
+    for update using (user_id = auth.uid() or public.current_app_role() in ('Admin','HR'))
+    with check (
+      case
+        when public.current_app_role() in ('Admin','HR') then true
+        else user_id = auth.uid() and (role is null or role = (select role from public.profiles where user_id = auth.uid()))
+      end
+    );
+  end if;
+end$$;
+
+-- Continue with other policies (tables already created earlier)
 
 drop policy if exists "lessons_admin_hr_crud" on public.lessons;
 create policy "lessons_admin_hr_crud" on public.lessons
