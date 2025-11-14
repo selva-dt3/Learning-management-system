@@ -523,7 +523,7 @@ begin
   if not exists (
     select 1
     from pg_catalog.pg_policies pol
-    where pol.polname = 'lesson-files-insert'
+    where pol.policyname = 'lesson-files-insert'
       and pol.schemaname = 'storage'
       and pol.tablename = 'objects'
   ) then
@@ -533,14 +533,14 @@ begin
     to authenticated
     with check (bucket_id = 'lesson-files');
   end if;
-end$$;
+end $$;
 
 do $$
 begin
   if not exists (
     select 1
     from pg_catalog.pg_policies pol
-    where pol.polname = 'lesson-files-update-own'
+    where pol.policyname = 'lesson-files-update-own'
       and pol.schemaname = 'storage'
       and pol.tablename = 'objects'
   ) then
@@ -551,14 +551,14 @@ begin
     using (bucket_id = 'lesson-files' and owner = auth.uid())
     with check (bucket_id = 'lesson-files' and owner = auth.uid());
   end if;
-end$$;
+end $$;
 
 do $$
 begin
   if not exists (
     select 1
     from pg_catalog.pg_policies pol
-    where pol.polname = 'lesson-files-delete-own'
+    where pol.policyname = 'lesson-files-delete-own'
       and pol.schemaname = 'storage'
       and pol.tablename = 'objects'
   ) then
@@ -568,14 +568,14 @@ begin
     to authenticated
     using (bucket_id = 'lesson-files' and owner = auth.uid());
   end if;
-end$$;
+end $$;
 
 do $$
 begin
   if not exists (
     select 1
     from pg_catalog.pg_policies pol
-    where pol.polname = 'lesson-files-read-auth'
+    where pol.policyname = 'lesson-files-read-auth'
       and pol.schemaname = 'storage'
       and pol.tablename = 'objects'
   ) then
@@ -585,7 +585,7 @@ begin
     to authenticated
     using (bucket_id = 'lesson-files');
   end if;
-end$$;
+end $$;
 
 -- 9) Useful indexes
 create index if not exists idx_qsub_quiz_status on public.quiz_submissions(quiz_id, status);
