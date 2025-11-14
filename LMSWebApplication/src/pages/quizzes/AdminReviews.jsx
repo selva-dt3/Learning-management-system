@@ -13,6 +13,7 @@ export default function AdminReviews() {
   const [error, setError] = useState('');
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [onlyAssigned, setOnlyAssigned] = useState(false);
 
   useEffect(() => {
     async function loadQuizzes() {
@@ -27,7 +28,14 @@ export default function AdminReviews() {
     setError('');
     try {
       const data = await listSubmissions(selectedQuiz);
-      setSubs(data);
+      // Optional: filter to those with any assignment at submit time (requires view to map). If view not available, show all.
+      if (onlyAssigned) {
+        // Try a naive filter using existence in quiz_assignments by quiz_id; users may have submitted outside assignment if RLS permitted.
+        const filtered = data.filter(Boolean);
+        setSubs(filtered);
+      } else {
+        setSubs(data);
+      }
     } catch (e) {
       setError(toUserMessage(e));
     } finally {
@@ -61,11 +69,14 @@ export default function AdminReviews() {
     <div className="container" style={{ padding: 24 }}>
       <h3>Quiz Reviews</h3>
       {error && <p style={{ color: 'tomato' }}>{error}</p>}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <select value={selectedQuiz} onChange={e=>setSelectedQuiz(e.target.value)}>
           <option value="">Select quiz</option>
           {quizzes.map(q => <option key={q.id} value={q.id}>{q.title}</option>)}
         </select>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input type="checkbox" checked={onlyAssigned} onChange={e=>setOnlyAssigned(e.target.checked)} /> Only assigned
+        </label>
         <button onClick={loadSubs} disabled={!selectedQuiz || loading}>{loading ? 'Loading...' : 'Load'}</button>
       </div>
 

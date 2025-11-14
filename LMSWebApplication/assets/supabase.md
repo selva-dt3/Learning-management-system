@@ -38,12 +38,40 @@ Question Bank:
 - question_bank_answers: { id uuid default gen_random_uuid(), question_id uuid, text text, is_correct bool }
 
 Assignments:
-- quiz_assignments: { id uuid default gen_random_uuid(), quiz_id uuid, lesson_id uuid null, user_id uuid null, group_id uuid null, due_date date, assigned_at timestamp }
-  - Policies: Admin/HR insert/select/delete; users select where user_id = auth.uid() or via group membership view.
+- quiz_assignments:
+  {
+    id uuid default gen_random_uuid(),
+    quiz_id uuid not null,
+    assignee_type text check (assignee_type in ('user','group','lesson')) not null,
+    assignee_id text not null, -- user_id UUID for type 'user'; department/group name for 'group'; lesson_id UUID for 'lesson'
+    due_at timestamp null,
+    opens_at timestamp null,
+    closes_at timestamp null,
+    attempts_allowed int default 1,
+    created_by uuid null,
+    created_at timestamp default now()
+  }
+  - Policies:
+    - Admin/HR: insert/select/update/delete all rows.
+    - Employees: select rows relevant to them via views (see below).
+  - Notes: attempts_allowed controls how many submissions are permitted; the UI enforces remaining attempts.
+
+Helper Views (required by UI):
+- user_quiz_assignments_resolved(user_id, quiz_id, assignment_id, due_at, opens_at, closes_at, attempts_allowed)
+  - Resolves applicable assignments for a user by:
+    - Direct user assignment (assignee_type='user' and assignee_id=user_id)
+    - Group/department assignment (assignee_type='group' and assignee_id matches profiles.department)
+    - Lesson assignment (assignee_type='lesson' where user has that lesson assigned via lesson_assignments)
+  - RLS: allow user to select only rows where user_id = auth.uid().
 
 Optional Views (for convenience):
 - quiz_assignments_view(user_id uuid, quiz_id uuid, quiz_title text, due_date date, lesson_id uuid)
 - quiz_submission_items_with_question(submission_id uuid, question_id uuid, question_text text, is_correct bool)
+
+RLS Notes:
+- Ensure profiles and lesson_assignments policies support the views above.
+- Consider using security definer functions for the resolved view if necessary to evaluate mappings safely.
+- Take Quiz flow relies on user_quiz_assignments_resolved to validate active window (opens_at/closes_at) and attempts_allowed.
 
 ## Real-time
 - Realtime enabled on: lessons, lesson_progress (and optionally quiz_submissions).

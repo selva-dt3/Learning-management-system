@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { getSupabaseClient } from '../../lib/supabaseClient';
 import { getQuiz, submitQuiz } from '../../services/quizzesService';
 import { toUserMessage } from '../../utils/errors';
+import { getActiveAssignmentForUser, getAttemptsUsed } from '../../services/assignmentsService';
 
 export default function TakeQuiz() {
   const supabase = getSupabaseClient();
@@ -16,6 +17,8 @@ export default function TakeQuiz() {
   const [timer, setTimer] = useState(null);
   const [remaining, setRemaining] = useState(null);
   const [result, setResult] = useState(null);
+  const [assignment, setAssignment] = useState(null);
+  const [attemptsInfo, setAttemptsInfo] = useState({ used: 0, allowed: 1 });
 
   useEffect(() => {
     async function load() {
@@ -25,11 +28,28 @@ export default function TakeQuiz() {
     load();
   }, [supabase]);
 
+  const checkAssignment = async (quizId) => {
+    // Resolve active assignment and attempts
+    const a = await getActiveAssignmentForUser(quizId);
+    if (!a) throw new Error('No active assignment found for this quiz, or it is not currently open.');
+    const used = await getAttemptsUsed(quizId);
+    const allowed = Number.isFinite(a.attempts_allowed) ? a.attempts_allowed : 1;
+    if (used >= allowed) {
+      throw new Error(`No attempts remaining. Used ${used}/${allowed}.`);
+    }
+    setAssignment(a);
+    setAttemptsInfo({ used, allowed });
+  };
+
   const loadQuiz = async () => {
     setLoading(true);
     setMsg('');
     setResult(null);
+    setAssignment(null);
     try {
+      // enforce assignment before loading
+      await checkAssignment(selected);
+
       const { quiz: q, questions } = await getQuiz(selected);
       setQuiz({ ...q, questions });
       setAnswers({});
@@ -82,7 +102,6 @@ export default function TakeQuiz() {
 
   const validate = () => {
     if (!quiz) return false;
-    // ensure every question has an answer
     for (const q of quiz.questions) {
       const a = answers[q.id];
       if (!a) return false;
@@ -101,7 +120,10 @@ export default function TakeQuiz() {
         setLoading(false);
         return;
       }
-      const res = await submitQuiz(quiz.id, compiledAnswers);
+      // attempt guard again before submitting (race-safe)
+      await checkAssignment(quiz.id);
+
+      const res = await submitQuiz(quiz.id, compiledAnswers, { allowMultiple: attemptsInfo.allowed > 1 });
       setResult(res);
       setMsg(`Score: ${res.scorePercent}% (${res.earnedPoints}/${res.totalPoints} pts)`);
       if (timer) clearInterval(timer);
@@ -156,6 +178,7 @@ export default function TakeQuiz() {
         </select>
         <button onClick={loadQuiz} disabled={!selected || loading}>{loading ? 'Loading...' : 'Load'}</button>
         {remaining !== null && <span style={{ marginLeft: 8 }}>⏱ {remaining}s</span>}
+        {assignment && <span style={{ marginLeft: 'auto' }}>Attempts: {attemptsInfo.used}/{attemptsInfo.allowed}</span>}
       </div>
 
       {quiz && !result && (

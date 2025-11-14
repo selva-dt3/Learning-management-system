@@ -5,6 +5,7 @@ import TakeQuiz from './TakeQuiz';
 import QuizBuilder from './QuizBuilder';
 import QuestionBank from './QuestionBank';
 import AdminReviews from './AdminReviews';
+import Assignments from './Assignments';
 
 export default function QuizzesRoutes() {
   return (
@@ -13,6 +14,7 @@ export default function QuizzesRoutes() {
       <Route path="take" element={<TakeQuiz />} />
       <Route path="new" element={<QuizBuilder />} />
       <Route path="bank" element={<QuestionBank />} />
+      <Route path="assignments" element={<Assignments />} />
       <Route path="reviews" element={<AdminReviews />} />
     </Routes>
   );

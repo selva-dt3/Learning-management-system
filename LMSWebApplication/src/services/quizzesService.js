@@ -311,8 +311,8 @@ async function gradeAnswers(quizId, providedAnswers) {
 
 /**
  * PUBLIC_INTERFACE
- * Submit quiz answers for an assignment guard and store per-item results in quiz_submission_items.
- * Prevents duplicate submissions per (quiz_id, user_id) unless assignment allows multiple (optional).
+ * Submit quiz answers (UI enforces active assignment, window, and attempts).
+ * Prevents duplicate submissions per (quiz_id, user_id) unless allowMultiple is true (based on assignment attempts).
  * answers: [{ question_id, answer_text? , boolean? }]
  * Returns: { scorePercent, totalPoints, earnedPoints, items }
  */

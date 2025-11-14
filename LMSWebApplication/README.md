@@ -38,11 +38,28 @@ npm start
 - question_bank(id uuid default gen_random_uuid(), text text, type text ['MCQ','TRUE_FALSE'], points int default 1, explanation text)
 - question_bank_answers(id uuid default gen_random_uuid(), question_id uuid, text text, is_correct bool)
 
-- quiz_assignments(id uuid default gen_random_uuid(), quiz_id uuid, lesson_id uuid null, user_id uuid null, group_id uuid null, due_date date, assigned_at timestamp)
+Assignments (updated):
+- quiz_assignments(
+    id uuid default gen_random_uuid(),
+    quiz_id uuid not null,
+    assignee_type text check (assignee_type in ('user','group','lesson')) not null,
+    assignee_id text not null, -- stores user_id UUID, department name, or lesson_id UUID
+    due_at timestamp null,
+    opens_at timestamp null,
+    closes_at timestamp null,
+    attempts_allowed int default 1,
+    created_by uuid null,
+    created_at timestamp default now()
+  )
 
 Optional helpful views:
 - quiz_assignments_view(user_id uuid, quiz_id uuid, quiz_title text, due_date date, lesson_id uuid)
 - quiz_submission_items_with_question(submission_id uuid, question_id uuid, question_text text, is_correct bool)
+- user_quiz_assignments_resolved(user_id uuid, quiz_id uuid, assignment_id uuid, due_at timestamp, opens_at timestamp, closes_at timestamp, attempts_allowed int)
+
+UI Usage:
+- Quizzes → Assignments: create user/group/lesson assignments, set due date, opens/closes window, and attempts allowed. Inline update and revoke supported.
+- Take Quiz enforces: user must have an active assignment, within window, and attempts remaining before loading/submitting.
 
 Storage bucket: `lesson-files` (use signed URLs for viewing).
 
