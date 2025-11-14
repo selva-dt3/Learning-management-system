@@ -522,12 +522,10 @@ do $$
 begin
   if not exists (
     select 1
-    from pg_policies p
-    join pg_class c on c.oid = p.polrelid
-    join pg_namespace n on n.oid = c.relnamespace
-    where p.polname = 'lesson-files-insert'
-      and n.nspname = 'storage'
-      and c.relname = 'objects'
+    from pg_catalog.pg_policies pol
+    where pol.polname = 'lesson-files-insert'
+      and pol.schemaname = 'storage'
+      and pol.tablename = 'objects'
   ) then
     create policy "lesson-files-insert"
     on storage.objects
@@ -541,12 +539,10 @@ do $$
 begin
   if not exists (
     select 1
-    from pg_policies p
-    join pg_class c on c.oid = p.polrelid
-    join pg_namespace n on n.oid = c.relnamespace
-    where p.polname = 'lesson-files-update-own'
-      and n.nspname = 'storage'
-      and c.relname = 'objects'
+    from pg_catalog.pg_policies pol
+    where pol.polname = 'lesson-files-update-own'
+      and pol.schemaname = 'storage'
+      and pol.tablename = 'objects'
   ) then
     create policy "lesson-files-update-own"
     on storage.objects
@@ -561,12 +557,10 @@ do $$
 begin
   if not exists (
     select 1
-    from pg_policies p
-    join pg_class c on c.oid = p.polrelid
-    join pg_namespace n on n.oid = c.relnamespace
-    where p.polname = 'lesson-files-delete-own'
-      and n.nspname = 'storage'
-      and c.relname = 'objects'
+    from pg_catalog.pg_policies pol
+    where pol.polname = 'lesson-files-delete-own'
+      and pol.schemaname = 'storage'
+      and pol.tablename = 'objects'
   ) then
     create policy "lesson-files-delete-own"
     on storage.objects
@@ -580,12 +574,10 @@ do $$
 begin
   if not exists (
     select 1
-    from pg_policies p
-    join pg_class c on c.oid = p.polrelid
-    join pg_namespace n on n.oid = c.relnamespace
-    where p.polname = 'lesson-files-read-auth'
-      and n.nspname = 'storage'
-      and c.relname = 'objects'
+    from pg_catalog.pg_policies pol
+    where pol.polname = 'lesson-files-read-auth'
+      and pol.schemaname = 'storage'
+      and pol.tablename = 'objects'
   ) then
     create policy "lesson-files-read-auth"
     on storage.objects
