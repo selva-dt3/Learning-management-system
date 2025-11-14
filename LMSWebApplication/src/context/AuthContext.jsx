@@ -43,15 +43,45 @@ export function AuthProvider({ children }) {
   const signInWithPassword = useCallback(async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    // After sign-in, ensure a profile exists and sync role if available
+    try {
+      const role = data?.user?.user_metadata?.role;
+      if (data?.user) {
+        await supabase.from('profiles').upsert({
+          user_id: data.user.id,
+          email: email,
+          role: role || 'Employee',
+          full_name: data.user.user_metadata?.full_name || null
+        }, { onConflict: 'user_id' });
+      }
+    } catch (_) {}
     return data;
   }, [supabase]);
 
   const signUpWithPassword = useCallback(async (email, password, extra = {}) => {
     const redirectTo = `${getSiteRedirectUrl()}/auth/callback`;
     const { data, error } = await supabase.auth.signUp({
-      email, password, options: { data: extra, emailRedirectTo: redirectTo },
+      email,
+      password,
+      options: { data: extra, emailRedirectTo: redirectTo },
     });
     if (error) throw error;
+
+    // Ensure profiles row exists with role metadata if provided
+    const metadataRole = extra?.role || 'Employee';
+    try {
+      if (data?.user) {
+        await supabase
+          .from('profiles')
+          .upsert({
+            user_id: data.user.id,
+            email,
+            role: metadataRole,
+            full_name: extra?.full_name || null,
+          }, { onConflict: 'user_id' });
+      }
+    } catch (_) { /* RLS may restrict; ignore non-fatal */ }
+
     return data;
   }, [supabase]);
 
@@ -59,6 +89,20 @@ export function AuthProvider({ children }) {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   }, [supabase]);
+
+  const resetPassword = useCallback(async (email) => {
+    const redirectTo = `${getSiteRedirectUrl()}/auth/reset`;
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) throw error;
+    return data;
+  }, [supabase]);
+
+  const updateRole = useCallback(async (userId, newRole) => {
+    // Requires RLS allowing Admin/HR; UI should restrict
+    const { error } = await supabase.from('profiles').update({ role: newRole }).eq('user_id', userId);
+    if (error) throw error;
+    await refresh();
+  }, [supabase, refresh]);
 
   const value = useMemo(() => {
     const role = profile?.role || null;
@@ -72,9 +116,9 @@ export function AuthProvider({ children }) {
       isEmployee: role === 'Employee',
       loading,
       error: authError,
-      actions: { signInWithPassword, signUpWithPassword, signOut, refresh },
+      actions: { signInWithPassword, signUpWithPassword, signOut, refresh, resetPassword, updateRole },
     };
-  }, [session, profile, loading, authError, signInWithPassword, signUpWithPassword, signOut, refresh]);
+  }, [session, profile, loading, authError, signInWithPassword, signUpWithPassword, signOut, refresh, resetPassword, updateRole]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -30,6 +30,7 @@ export function getSupabaseClient() {
           'x-client-info': 'LMSWebApp',
         },
       },
+      realtime: { params: { eventsPerSecond: 5 } }
     });
   }
   return window.__supabase_client__;
@@ -53,8 +54,23 @@ export async function getSessionAndProfile() {
       .eq('user_id', session.user.id)
       .single();
 
-    if (profileError && profileError.code !== 'PGRST116') throw profileError; // 406 no single result etc.
-
+    if (profileError && profileError.code !== 'PGRST116') throw profileError; // single() no rows
+    // If no profile row, consider creating minimal profile from auth metadata (best-effort, RLS must allow)
+    if (!profile) {
+      const { data: up, error: upErr } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: session.user.id,
+          email: session.user.email,
+          role: session.user.user_metadata?.role || 'Employee',
+          full_name: session.user.user_metadata?.full_name || null
+        }, { onConflict: 'user_id' })
+        .select('*')
+        .single();
+      if (!upErr && up) {
+        return { session, profile: up, error: null };
+      }
+    }
     return { session, profile: profile || null, error: null };
   } catch (error) {
     return { session: null, profile: null, error };

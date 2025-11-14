@@ -11,16 +11,20 @@ export default function AuthPage() {
   const [password, setPassword] = useState('');
   const [processing, setProcessing] = useState(false);
   const [message, setMessage] = useState('');
+  const [forgot, setForgot] = useState(false);
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setProcessing(true);
     setMessage('');
     try {
-      if (mode === 'signin') {
+      if (forgot) {
+        await actions.resetPassword(email);
+        setMessage('Password reset email sent if the account exists.');
+      } else if (mode === 'signin') {
         await actions.signInWithPassword(email, password);
       } else {
-        await actions.signUpWithPassword(email, password, { signup_source: 'lms' });
+        await actions.signUpWithPassword(email, password, { signup_source: 'lms', role: 'Employee' });
         setMessage('Check your email to confirm your account.');
       }
     } catch (err) {
@@ -36,12 +40,17 @@ export default function AuthPage() {
         <h1>Corporate LMS</h1>
         <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12, width: 320 }}>
           <input type="email" placeholder="email@company.com" value={email} onChange={e=>setEmail(e.target.value)} required />
-          <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} required />
-          <button className="theme-toggle" type="submit" disabled={processing}>{processing ? 'Please wait...' : (mode==='signin'?'Sign In':'Sign Up')}</button>
+          {!forgot && <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} required={mode==='signin' || mode==='signup'} />}
+          <button className="theme-toggle" type="submit" disabled={processing}>
+            {processing ? 'Please wait...' : forgot ? 'Reset Password' : (mode==='signin'?'Sign In':'Sign Up')}
+          </button>
           <button type="button" onClick={()=>setMode(mode==='signin'?'signup':'signin')} style={{ background:'transparent', border:'1px solid var(--border-color)', padding:8, borderRadius:8 }}>
             {mode==='signin' ? 'Need an account? Sign Up' : 'Have an account? Sign In'}
           </button>
-          {(message || error) && <p style={{ color: 'tomato' }}>{message || error}</p>}
+          <button type="button" onClick={()=>setForgot(f=>!f)} style={{ background:'transparent', border:'none', color:'var(--text-secondary)' }}>
+            {forgot ? 'Back to Sign In' : 'Forgot password?'}
+          </button>
+          {(message || error) && <p style={{ color: message?.includes('sent') ? 'green' : 'tomato' }}>{message || error}</p>}
         </form>
       </header>
     </div>

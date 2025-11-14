@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getSupabaseClient } from '../../lib/supabaseClient';
 import { toUserMessage } from '../../utils/errors';
+import { uploadLessonFile } from '../../services/storageService';
 
 export default function LessonEditor() {
   const { id } = useParams();
@@ -14,6 +15,7 @@ export default function LessonEditor() {
   const [filePath, setFilePath] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   async function load() {
     if (id === 'new') return;
@@ -26,6 +28,34 @@ export default function LessonEditor() {
   }
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
+
+  const onFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // basic validation: allow pdf, mp4, webm up to ~50MB
+    const allowed = ['application/pdf', 'video/mp4', 'video/webm'];
+    if (!allowed.includes(file.type)) {
+      setError('Unsupported file type. Allowed: PDF, MP4, WEBM');
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      setError('File too large. Max 50MB.');
+      return;
+    }
+    setUploading(true);
+    setError('');
+    try {
+      const filename = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const bucket = 'lesson-files';
+      const path = `uploads/${filename}`;
+      const storagePath = await uploadLessonFile(bucket, path, file);
+      setFilePath(storagePath);
+    } catch (e) {
+      setError(toUserMessage(e));
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const onSave = async () => {
     setSaving(true);
@@ -54,7 +84,6 @@ export default function LessonEditor() {
     navigate('/lessons');
   };
 
-  // Simple storage path input placeholder; recommend creating a bucket "lesson-files" and using signed URLs
   return (
     <div className="container" style={{ padding: 24, display:'flex', flexDirection:'column', gap:12 }}>
       <h2>{id === 'new' ? 'Create Lesson' : 'Edit Lesson'}</h2>
@@ -65,12 +94,20 @@ export default function LessonEditor() {
         <option value="draft">Draft</option>
         <option value="published">Published</option>
       </select>
-      <input placeholder="Storage path (e.g., lesson-files/intro.pdf)" value={filePath} onChange={e=>setFilePath(e.target.value)} />
+
+      <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+        <input placeholder="Storage path (e.g., lesson-files/intro.pdf)" value={filePath} onChange={e=>setFilePath(e.target.value)} style={{ flex:'1 1 300px' }} />
+        <label style={{ border:'1px solid var(--border-color)', padding:'6px 10px', borderRadius:6, cursor:'pointer' }}>
+          {uploading ? 'Uploading...' : 'Upload file'}
+          <input type="file" onChange={onFileSelect} style={{ display:'none' }} accept=".pdf,video/mp4,video/webm" />
+        </label>
+      </div>
+
       <div style={{ display:'flex', gap:8 }}>
         <button onClick={onSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
         {id !== 'new' && <button onClick={onDelete} style={{ background:'tomato', color:'#fff' }}>Delete</button>}
       </div>
-      <small>Tip: Upload files to Supabase Storage bucket (e.g., lesson-files) via Supabase Dashboard or add an uploader in future.</small>
+      <small>Tip: Upload files to Supabase Storage bucket (e.g., lesson-files). Uploaded files are stored under lesson-files/uploads/.</small>
     </div>
   );
 }

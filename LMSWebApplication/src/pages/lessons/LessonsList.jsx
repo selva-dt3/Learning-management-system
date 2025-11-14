@@ -16,10 +16,13 @@ export default function LessonsList() {
     setError('');
     try {
       // RLS expected: only published or assigned; admins can see all per policy
-      const query = supabase.from('lessons').select('id, title, status, updated_at');
-      const { data, error: qErr } = await query.order('updated_at', { ascending: false });
+      const query = supabase
+        .from('lessons')
+        .select('id, title, status, updated_at, lesson_assignments(count)')
+        .order('updated_at', { ascending: false });
+      const { data, error: qErr } = await query;
       if (qErr) throw qErr;
-      setLessons(data || []);
+      setLessons((data || []).map(l => ({ ...l, assignedCount: l.lesson_assignments?.[0]?.count || 0 })));
     } catch (err) {
       setError(toUserMessage(err));
     } finally {
@@ -46,7 +49,7 @@ export default function LessonsList() {
         <ul>
           {lessons.map(l => (
             <li key={l.id} style={{ marginBottom: 8 }}>
-              <Link to={`/lessons/${l.id}`}>{l.title}</Link> <span style={{ opacity: 0.7 }}>({l.status})</span>
+              <Link to={`/lessons/${l.id}`}>{l.title}</Link> <span style={{ opacity: 0.7 }}>({l.status})</span> {l.assignedCount ? <span style={{ marginLeft:6, fontSize:12, opacity:0.7 }}>· assigned: {l.assignedCount}</span> : null}
               {(isAdmin || isHR) && <> · <Link to={`/lessons/${l.id}/edit`}>Edit</Link></>}
             </li>
           ))}

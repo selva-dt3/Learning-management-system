@@ -13,9 +13,9 @@ npm install
 - Copy `.env.example` to `.env` and set:
   - `REACT_APP_SUPABASE_URL`
   - `REACT_APP_SUPABASE_ANON_KEY`
-  - Optional: `REACT_APP_SITE_URL` (defaults to `http://localhost:3000`)
+  - Optional: `REACT_APP_SITE_URL` (defaults to window.location.origin)
 
-Note: Other env vars are already present in the environment for this container.
+Note: Other env vars are present in the container environment.
 
 3) Start the app:
 ```
@@ -25,107 +25,38 @@ npm start
 ## Supabase Notes
 
 - Tables referenced by the UI:
-  - profiles(user_id uuid, role text ['Admin','HR','Employee'], full_name text, ...)
-  - lessons(id uuid, title text, description text, status text ['draft','published'], storage_path text, updated_at timestamp, ...)
-  - lesson_progress, lesson_assignments, quizzes, quiz_questions, quiz_answers, quiz_submissions, onboarding_status
-- Storage bucket example: `lesson-files` to store PDFs/videos. Save storage_path like `lesson-files/path/to/file.pdf`.
+  - profiles(user_id uuid, role text ['Admin','HR','Employee'], full_name text, department text, email text)
+  - lessons(id uuid, title text, description text, status text ['draft','published'], storage_path text, updated_at timestamp)
+  - lesson_assignments(user_id uuid, lesson_id uuid)
+  - lesson_progress(user_id uuid, lesson_id uuid, completed bool, completed_at timestamp)
+  - quizzes(id uuid, title text, description text)
+  - quiz_questions(id uuid, quiz_id uuid, text text, type text ['MCQ','TRUE_FALSE'])
+  - quiz_answers(id uuid, question_id uuid, text text, is_correct bool)
+  - quiz_submissions(id uuid, quiz_id uuid, user_id uuid, score int, submitted_at timestamp, details jsonb)
+  - onboarding_status(user_id uuid pk, nda_signed bool, coc_signed bool, acknowledged_at timestamp)
+- Storage bucket: `lesson-files` (use signed URLs for viewing).
 - RLS policies must allow:
-  - profiles: users can select their own row (user_id = auth.uid()).
-  - lessons: Admins see all; others see published and/or assigned via policies.
-  - onboarding_status: upsert by owner or HR/Admin as per requirements.
+  - profiles: users can select/update their row (user_id = auth.uid()); Admin/HR broader as required.
+  - lessons: Admin CRUD; others select published/assigned; realtime enabled.
+  - lesson_progress: owner upsert/select own; Admin/HR read for analytics.
+  - quiz_submissions: owner insert/select; Admin/HR read for reporting.
+  - onboarding_status: owner upsert/select; HR/Admin read.
 
-## Features in this scaffold
+## Implemented Features
 
-- Supabase client configured via env and used across the app
-- Auth pages and session persistence via AuthContext
-- Role-based dashboards and guarded routes
-- Lessons list, editor (Admin/HR), and viewer with signed URLs (PDF/video)
-- Onboarding acknowledgment saved to onboarding_status
-- Basic analytics sample computing completion rates from lesson_progress
-- Real-time updates on lessons list through Supabase channel
+- Auth: Email/password sign up/in/out, password reset email. Profile row upserted/synced with role metadata.
+- Role-based dashboards and guarded routes.
+- Lessons: List with realtime updates, create/edit/delete, storage uploader (PDF/MP4/WebM) with validation, signed URLs in viewer, mark-complete.
+- Quizzes: Builder for MCQ and True/False, taker to load quiz, select answers, submit and grade (stores score + details).
+- Onboarding: NDA/Code of Conduct acknowledgments stored via upsert.
+- Analytics: Completion rate (lesson_progress) + quiz performance (average score). RLS enforces role-based visibility.
+- Realtime: Lessons and progress channels wired for auto-refresh.
 
-Next steps: extend quizzes (builder and taker), HR assignments management, richer analytics, and file uploader to Supabase Storage.
-
-Troubleshooting:
-- If routing fails, ensure `react-router-dom@^6` is installed (already added in package.json). Re-run `npm install`.
-- Ensure Supabase env vars are correctly set in `.env`. The app will log a console error if not configured.
-
-
-## Features
-
-- **Lightweight**: No heavy UI frameworks - uses only vanilla CSS and React
-- **Modern UI**: Clean, responsive design with KAVIA brand styling
-- **Fast**: Minimal dependencies for quick loading times
-- **Simple**: Easy to understand and modify
-
-## Getting Started
-
-In the project directory, you can run:
-
-### `npm start`
-
-Runs the app in development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-### `npm test`
-
-Launches the test runner in interactive watch mode.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-## Customization
-
-### Colors
-
-The main brand colors are defined as CSS variables in `src/App.css`:
-
-```css
-:root {
-  --kavia-orange: #E87A41;
-  --kavia-dark: #1A1A1A;
-  --text-color: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.7);
-  --border-color: rgba(255, 255, 255, 0.1);
-}
-```
-
-### Components
-
-This template uses pure HTML/CSS components instead of a UI framework. You can find component styles in `src/App.css`. 
-
-Common components include:
-- Buttons (`.btn`, `.btn-large`)
-- Container (`.container`)
-- Navigation (`.navbar`)
-- Typography (`.title`, `.subtitle`, `.description`)
+## Troubleshooting
+- Ensure Supabase env vars are correctly set in `.env`. Client will log a clear error if missing.
+- Confirm storage bucket `lesson-files` exists and policies permit authenticated uploads and signed URL creation.
+- Verify RLS policies match UI assumptions (see assets/supabase.md).
 
 ## Learn More
+Standard CRA documentation applies.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)

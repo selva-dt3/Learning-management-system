@@ -37,6 +37,7 @@ export default function Onboarding() {
       <br/>
       <label><input type="checkbox" checked={coc} onChange={e=>setCoc(e.target.checked)} /> I have read and agree to the Code of Conduct</label>
       <div style={{ marginTop: 16 }}><button onClick={submit} disabled={saving}>{saving ? 'Saving...' : 'Acknowledge'}</button></div>
+      <small>Note: Your selections are stored securely in onboarding_status with RLS.</small>
       {msg && <p style={{ color: msg.includes('saved') ? 'green' : 'tomato' }}>{msg}</p>}
     </div>
   );
