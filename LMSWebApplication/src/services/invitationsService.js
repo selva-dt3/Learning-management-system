@@ -1,8 +1,6 @@
 import { getSupabaseClient } from '../lib/supabaseClient';
 import { ApplicationError } from '../utils/errors';
 
-const supabase = getSupabaseClient();
-
 /**
  * PUBLIC_INTERFACE
  * Create an invitation using Supabase Admin API when available; fall back to auth.admin.createUser with email confirmations.
@@ -10,6 +8,7 @@ const supabase = getSupabaseClient();
  * payload: { email, role, department?, invited_by?, redirectTo }
  */
 export async function adminInviteUser(payload) {
+  const supabase = getSupabaseClient();
   const email = String(payload.email || '').trim();
   const role = payload.role;
   const department = payload.department || null;
@@ -82,6 +81,7 @@ export async function adminInviteUser(payload) {
  * List invitations (RLS-aware). Admin should have select rights.
  */
 export async function listInvitations() {
+  const supabase = getSupabaseClient();
   try {
     const { data, error } = await supabase
       .from('user_invitations')
@@ -101,6 +101,7 @@ export async function listInvitations() {
  * invite: row { email, role, department, ... }
  */
 export async function resendInvitation(invite, redirectTo) {
+  const supabase = getSupabaseClient();
   const email = invite?.email;
   const role = invite?.role;
   const department = invite?.department || null;
@@ -144,6 +145,7 @@ export async function resendInvitation(invite, redirectTo) {
  * Revoke an invitation by marking status in user_invitations. (Does not delete the Supabase auth user if created by createUser.)
  */
 export async function revokeInvitation(id) {
+  const supabase = getSupabaseClient();
   try {
     const { error } = await supabase.from('user_invitations').update({ status: 'revoked' }).eq('id', id);
     if (error) throw error;
@@ -159,6 +161,7 @@ export async function revokeInvitation(id) {
  * This can be called post-auth or from AuthContext on session change.
  */
 export async function upsertProfileOnAccept() {
+  const supabase = getSupabaseClient();
   try {
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error) throw error;

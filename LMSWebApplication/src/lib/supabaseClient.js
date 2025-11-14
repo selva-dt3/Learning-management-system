@@ -129,22 +129,7 @@ export async function getSessionAndProfile() {
       .single();
 
     if (profileError && profileError.code !== 'PGRST116') throw profileError; // single() no rows
-    // If no profile row, consider creating minimal profile from auth metadata (best-effort, RLS must allow)
-    if (!profile) {
-      const { data: up, error: upErr } = await supabase
-        .from('profiles')
-        .upsert({
-          user_id: session.user.id,
-          email: session.user.email,
-          role: session.user.user_metadata?.role || 'Employee',
-          full_name: session.user.user_metadata?.full_name || null
-        }, { onConflict: 'user_id' })
-        .select('*')
-        .single();
-      if (!upErr && up) {
-        return { session, profile: up, error: null };
-      }
-    }
+    // Do not upsert here to avoid side-effects during initialization; let callers manage creation flows.
     return { session, profile: profile || null, error: null };
   } catch (error) {
     return { session: null, profile: null, error };

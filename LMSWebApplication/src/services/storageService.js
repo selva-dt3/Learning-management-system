@@ -1,11 +1,10 @@
 import { getSupabaseClient } from '../lib/supabaseClient';
 import { ApplicationError } from '../utils/errors';
 
-const supabase = getSupabaseClient();
-
 // PUBLIC_INTERFACE
 export async function uploadLessonFile(bucket, path, file) {
   /** Upload a file to Supabase Storage; requires RLS/storage policy allowing auth users to upload */
+  const supabase = getSupabaseClient();
   try {
     const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
     if (error) throw error;
@@ -18,6 +17,7 @@ export async function uploadLessonFile(bucket, path, file) {
 // PUBLIC_INTERFACE
 export async function getSignedUrl(storagePath, expiresInSeconds = 3600) {
   /** Create a signed URL for a given storage path (bucket/path) */
+  const supabase = getSupabaseClient();
   const [bucket, ...rest] = (storagePath || '').split('/');
   const path = rest.join('/');
   if (!bucket || !path) throw new ApplicationError('Invalid storage path', 'STORAGE_PATH');
