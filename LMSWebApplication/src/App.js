@@ -15,6 +15,7 @@ import Analytics from './pages/analytics/Analytics';
 import UsersInvitesPage from './pages/admin/UsersInvitesPage';
 import { ProtectedRoute, RoleRoute } from './routes/RouteGuards';
 import Navbar from './components/Navbar';
+import { isSupabaseConfigured } from './lib/supabaseClient';
 
 // PUBLIC_INTERFACE
 function HomeRouter() {
@@ -87,9 +88,27 @@ function AppShell() {
   );
 }
 
+/** Simple message shown when required env is missing */
+function MisconfiguredEnv() {
+  return (
+    <div className="container" style={{ padding: 24 }}>
+      <h2>Configuration required</h2>
+      <p>
+        Supabase environment variables are not configured.
+        Please set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_KEY (or ANON key) and reload.
+      </p>
+    </div>
+  );
+}
+
 // PUBLIC_INTERFACE
 function App() {
-  /** Wrap AppShell with AuthProvider for auth state */
+  /** Wrap AppShell with AuthProvider for auth state, guarded by env presence */
+  const configured = isSupabaseConfigured();
+  if (!configured) {
+    // Fail fast without mounting providers/routes that rely on Supabase.
+    return <MisconfiguredEnv />;
+  }
   return (
     <AuthProvider>
       <AppShell />
