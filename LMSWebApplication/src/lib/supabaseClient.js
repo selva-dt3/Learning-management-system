@@ -13,6 +13,7 @@ import { createClient } from '@supabase/supabase-js';
  * We intentionally do not log values, only presence.
  */
 function resolveSupabaseEnv() {
+  // Support both generic and CRA env variable names. Some environments may provide REACT_APP_SUPABASE_KEY instead of REACT_APP_SUPABASE_ANON_KEY.
   const supabaseUrl =
     process.env.SUPABASE_URL ||
     process.env.REACT_APP_SUPABASE_URL ||
@@ -21,6 +22,7 @@ function resolveSupabaseEnv() {
   const supabaseKey =
     process.env.SUPABASE_KEY ||
     process.env.REACT_APP_SUPABASE_ANON_KEY ||
+    process.env.REACT_APP_SUPABASE_KEY ||
     '';
 
   return { supabaseUrl, supabaseKey };
@@ -39,8 +41,10 @@ function getOrCreateClient() {
     );
   }
 
-  if (!window.__supabase_client__) {
-    window.__supabase_client__ = createClient(supabaseUrl, supabaseKey, {
+  // Avoid reference errors if window is not defined (tests/SSR-like tools)
+  const g = typeof window !== 'undefined' ? window : {};
+  if (!g.__supabase_client__) {
+    const client = createClient(supabaseUrl, supabaseKey, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
@@ -53,8 +57,12 @@ function getOrCreateClient() {
       },
       realtime: { params: { eventsPerSecond: 5 } },
     });
+    if (typeof window !== 'undefined') {
+      window.__supabase_client__ = client;
+    }
+    return client;
   }
-  return window.__supabase_client__;
+  return g.__supabase_client__;
 }
 
 // PUBLIC_INTERFACE
@@ -107,5 +115,11 @@ export async function getSessionAndProfile() {
 // PUBLIC_INTERFACE
 export function getSiteRedirectUrl() {
   /** Returns site URL for auth redirect */
-  return process.env.REACT_APP_SITE_URL || window.location.origin;
+  if (process.env.REACT_APP_SITE_URL) return process.env.REACT_APP_SITE_URL;
+  try {
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      return window.location.origin;
+    }
+  } catch (_) {}
+  return '';
 }

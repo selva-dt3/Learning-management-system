@@ -15,7 +15,7 @@ export default function Navbar() {
       {role === 'Admin' && <Link to="/analytics">Analytics</Link>}
       <div style={{ marginLeft: 'auto', display:'flex', gap: 12, alignItems: 'center' }}>
         <span style={{ opacity: 0.7 }}>Role: {role || 'N/A'}</span>
-        <button onClick={actions.signOut}>Sign out</button>
+        <button onClick={() => actions?.signOut?.()}>Sign out</button>
       </div>
     </nav>
   );
